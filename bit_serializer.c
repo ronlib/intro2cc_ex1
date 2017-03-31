@@ -30,3 +30,15 @@ int bits2bytes(__IN__ const unsigned char* bits, __IN__ unsigned int bits_length
 
 	return 0;
 }
+
+int bytes2bits(__IN__ const unsigned char* bytes, __IN__ unsigned int bytes_length, __OUT__ unsigned char** bits, __OUT__ unsigned int* bits_length)
+{
+	*bits_length = bytes_length*8;
+	*bits = malloc(*bits_length);
+	for (unsigned int i=0 ; i < *bits_length ; ++i)
+		{
+			(*bits)[i] = get_bit_in_byte_array(bytes, i);
+		}
+
+	return 0;
+}
