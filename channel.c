@@ -7,6 +7,8 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
+#define BUFFER_SIZE 1000
+
 /*
 	 Creates a listening socket, and returns its file descriptor.
 	 In case of an error, the returned value is -1
@@ -23,6 +25,7 @@ int receive_connection(int socket, struct sockaddr* client_addr);
 	Returns -1 in case of an error, 0 otherwise.
 */
 int transfer_sender_receiver(int sender_socket, int receiver_socket);
+
 
 
 int main(int argc, const char* argv[])
@@ -75,14 +78,13 @@ int main(int argc, const char* argv[])
 			goto cleanup;
 		}
 
-
 	if ((receiver_socket = receive_connection(server_listening_socket, &receiver_addr)) == -1)
 		{
 			fprintf(stderr, "Cannot receive server connection. Exiting\n");
 			return 1;
 		}
 
-		if (address_buffer == inet_ntop(AF_INET, &(((struct sockaddr_in*)&receiver_addr)->sin_addr), address_buffer, sizeof(struct sockaddr_in)))
+	if (address_buffer == inet_ntop(AF_INET, &(((struct sockaddr_in*)&receiver_addr)->sin_addr), address_buffer, sizeof(struct sockaddr_in)))
 		{
 			int port_number = ntohs(((struct sockaddr_in*)(&receiver_addr))->sin_port);
 			fprintf(stderr, "receiver: %s:%d\n", address_buffer, port_number);
@@ -93,6 +95,10 @@ int main(int argc, const char* argv[])
 		}
 
 
+	if (transfer_sender_receiver(sender_socket, receiver_socket) == -1)
+		{
+			fprintf(stderr, "Error while transferring files from sender to receiver. Exiting.\n");
+		}
 
 
  cleanup:
@@ -158,4 +164,28 @@ int receive_connection(int socket, struct sockaddr* client_addr)
 		}
 
 	return received_connection_socket;
+}
+
+int transfer_sender_receiver(int sender_socket, int receiver_socket)
+{
+	char buf[BUFFER_SIZE];
+	int nrecv;
+
+	while ((nrecv = recv(sender_socket, buf, sizeof(buf), 0)) > 0)
+		{
+			int left_to_send = nrecv;
+			while (left_to_send > 0)
+				{
+					int nsent = send(receiver_socket, buf+nrecv-left_to_send, left_to_send, 0);
+					if (nsent < 1)
+						{
+							fprintf(stderr, "Error while sending buffer. Exiting.\n");
+							return -1;
+						}
+
+					left_to_send -= nsent;
+				}
+		}
+
+	return 0;
 }
