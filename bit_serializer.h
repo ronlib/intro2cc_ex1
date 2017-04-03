@@ -1,5 +1,4 @@
-#define __IN__
-#define __OUT__
+#include "convention.h"
 
 /**
  Returns an allocated array of unsigned char (which requires freeing later)

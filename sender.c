@@ -4,7 +4,7 @@
 #include <sys/socket.h>
 #include "connect_socket.h"
 
-#define FILE_BUFFER_SIZE 1000
+#define FILE_BUFFER_SIZE 57
 
 int main(int argc, const char* argv[])
 {
