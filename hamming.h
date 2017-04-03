@@ -6,4 +6,5 @@
 */
 int hamming_encode(__IN__ const unsigned char bits[57], __OUT__ unsigned char** encoded_bits);
 
+
 int hamming_decode(__IN__ const unsigned char bits[63], __OUT__ unsigned char** decoded_bits);

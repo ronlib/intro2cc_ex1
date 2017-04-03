@@ -44,7 +44,8 @@ int set_encoding_bits_according_to_parity(__IN__ unsigned char encoded_bits[63])
 {
 	for (int i=1 ; i <= 63 ; ++i)
 		{
-			if (1 == encoded_bits[i-1])
+			if (1 == encoded_bits[i-1] &&
+					(i != 1 && i != 2 && i != 4 && i!= 8 && i != 16 && i != 32))
 				{
 					if (get_bit_in_byte_array((unsigned char*)&i, 7) == 1)
 						{
@@ -56,7 +57,6 @@ int set_encoding_bits_according_to_parity(__IN__ unsigned char encoded_bits[63])
 							encoded_bits[1] ^= 1;
 						}
 
-
 					if (get_bit_in_byte_array((unsigned char*)&i, 5) == 1)
 						{
 							encoded_bits[3] ^= 1;
@@ -67,18 +67,15 @@ int set_encoding_bits_according_to_parity(__IN__ unsigned char encoded_bits[63])
 							encoded_bits[7] ^= 1;
 						}
 
-
 					if (get_bit_in_byte_array((unsigned char*)&i, 3) == 1)
 						{
 							encoded_bits[15] ^= 1;
 						}
 
-
 					if (get_bit_in_byte_array((unsigned char*)&i, 2) == 1)
 						{
 							encoded_bits[31] ^= 1;
 						}
-
 				}
 		}
 
@@ -89,6 +86,7 @@ int set_encoding_bits_according_to_parity(__IN__ unsigned char encoded_bits[63])
 int hamming_decode(__IN__ const unsigned char bits[62], __OUT__ unsigned char** decoded_bits)
 {
 	unsigned char tmp[63], parity_misses = 0;
+	int return_val = 0;
 	memcpy(tmp, bits, 63);
 
 	set_encoding_bits_according_to_parity(tmp);
@@ -96,9 +94,24 @@ int hamming_decode(__IN__ const unsigned char bits[62], __OUT__ unsigned char** 
 
 	// If parity_misses > 0, it means an error occurred in index represented by parity misses.
 	// We can correct at most one bit flip.
-	tmp[parity_misses-1] ^= 1;
+	if (parity_misses > 0)
+		{
+			tmp[parity_misses-1] ^= 1;
+			return_val = 1;
+		}
 
+	*decoded_bits = malloc(57);
+	if (0 == *decoded_bits)
+		{
+			fprintf(stderr, "Unable to allocate memory\n");
+			return -1;
+		}
 
+	(*decoded_bits)[0] = tmp[2];
+	memcpy(&(*decoded_bits)[1], &tmp[4], 3);
+	memcpy(&(*decoded_bits)[4], &tmp[8], 7);
+	memcpy(&(*decoded_bits)[11], &tmp[16], 15);
+	memcpy(&(*decoded_bits)[26], &tmp[32], 31);
 
-	return 0;
+	return return_val;
 }
