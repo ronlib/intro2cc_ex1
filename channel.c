@@ -6,8 +6,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include "convention.h"
+#include "bit_serializer.h"
 
-#define BUFFER_SIZE 1000
+#define BUFFER_SIZE 63
 
 /*
 	 Creates a listening socket, and returns its file descriptor.
@@ -22,10 +24,15 @@ int create_listening_socket(int port);
 int receive_connection(int socket, struct sockaddr* client_addr);
 
 /*
+	Transfers data from sender to receiver, and flips bits with probability bit_flip_prob
 	Returns -1 in case of an error, 0 otherwise.
 */
-int transfer_sender_receiver(int sender_socket, int receiver_socket);
+int transfer_sender_receiver(int sender_socket, int receiver_socket, double bit_flip_prob);
 
+/*
+	Returns the number of bits flipped
+*/
+int flip_bits(__IN__ __OUT__ char buffer[63], double bit_flip_prob);
 
 
 int main(int argc, const char* argv[])
@@ -49,6 +56,8 @@ int main(int argc, const char* argv[])
 	server_listening_port = strtol(argv[2], &strend, 10);
 	error_probability = atof(argv[3]);
 	seed = strtol(argv[4], &strend, 10);
+
+	srand(seed);
 
 	if ((client_listening_socket = create_listening_socket(client_listening_port)) == -1)
 		{
@@ -95,9 +104,10 @@ int main(int argc, const char* argv[])
 		}
 
 
-	if (transfer_sender_receiver(sender_socket, receiver_socket) == -1)
+	if (transfer_sender_receiver(sender_socket, receiver_socket, error_probability) == -1)
 		{
 			fprintf(stderr, "Error while transferring files from sender to receiver. Exiting.\n");
+			goto cleanup;
 		}
 
 
@@ -166,13 +176,26 @@ int receive_connection(int socket, struct sockaddr* client_addr)
 	return received_connection_socket;
 }
 
-int transfer_sender_receiver(int sender_socket, int receiver_socket)
+int transfer_sender_receiver(int sender_socket, int receiver_socket, double bit_flip_prob)
 {
 	char buf[BUFFER_SIZE];
-	int nrecv;
+	int nrecv, flip_counter = 0, tmp = 0;
 
 	while ((nrecv = recv(sender_socket, buf, sizeof(buf), 0)) > 0)
 		{
+			if (BUFFER_SIZE > nrecv)
+				{
+					fprintf(stderr, "Error: Should have received %d bytes, but got only %d.\n", BUFFER_SIZE, nrecv);
+					return -1;
+				}
+
+			tmp = flip_bits(buf, bit_flip_prob);
+			if (-1 == tmp)
+				{
+					return -1;
+				}
+			flip_counter += tmp;
+
 			int left_to_send = nrecv;
 			while (left_to_send > 0)
 				{
@@ -188,4 +211,37 @@ int transfer_sender_receiver(int sender_socket, int receiver_socket)
 		}
 
 	return 0;
+}
+
+int flip_bits(__IN__ __OUT__ char buffer[BUFFER_SIZE], double bit_flip_prob)
+{
+	int flipped_bit_counter = 0;
+	unsigned char* bits = 0, *flipped_bytes = 0;
+	unsigned int bits_length = 0, bytes_length = 0;
+
+	if (bytes2bits((unsigned char*)buffer, BUFFER_SIZE, &bits, &bits_length) == -1)
+		{
+			return -1;
+		}
+
+	for (int i = 0 ; i < bits_length ; ++i)
+		{
+			if ((rand() / (double)RAND_MAX) < bit_flip_prob)
+				{
+					bits[i] ^= 1;
+					++flipped_bit_counter;
+				}
+		}
+
+	if (bits2bytes(bits, bits_length, &flipped_bytes, &bytes_length) == -1)
+		{
+			free(bits);
+			return -1;
+		}
+
+	memcpy(buffer, flipped_bytes, BUFFER_SIZE);
+	free(bits);
+	free(flipped_bytes);
+
+	return flipped_bit_counter;
 }

@@ -7,7 +7,7 @@
 int set_encoding_bits_according_to_parity(__IN__ unsigned char encoded_bits[63]);
 
 
-int hamming_encode(__IN__ const unsigned char bits[57], __OUT__ unsigned char** encoded_bits)
+int hamming_encode_block(__IN__ const unsigned char bits[57], __OUT__ unsigned char** encoded_bits)
 {
 	int err = 0;
 	if (0 == encoded_bits)
@@ -83,7 +83,7 @@ int set_encoding_bits_according_to_parity(__IN__ unsigned char encoded_bits[63])
 }
 
 
-int hamming_decode(__IN__ const unsigned char bits[62], __OUT__ unsigned char** decoded_bits)
+int hamming_decode_block(__IN__ const unsigned char bits[63], __OUT__ unsigned char** decoded_bits)
 {
 	unsigned char tmp[63], parity_misses = 0;
 	int return_val = 0;
@@ -114,4 +114,77 @@ int hamming_decode(__IN__ const unsigned char bits[62], __OUT__ unsigned char** 
 	memcpy(&(*decoded_bits)[26], &tmp[32], 31);
 
 	return return_val;
+}
+
+
+int hamming_encode(__IN__ const unsigned char* bits_buffer, __IN__ const unsigned int buffer_length, __OUT__ unsigned char** encoded_buffer, unsigned int* encoded_buffer_length)
+{
+
+	if (0 != buffer_length % 57)
+		{
+			return -1;
+		}
+
+	*encoded_buffer_length = (buffer_length*63)/57;
+	*encoded_buffer = malloc(*encoded_buffer_length);
+
+	if (0 == *encoded_buffer)
+		{
+			fprintf(stderr, "Error: Unable to allocate memory.\n");
+			return -1;
+		}
+
+	for (unsigned int i = 0 ; i < buffer_length ; i += 57)
+		{
+			unsigned char* encoded_bits = 0;
+			if (-1 == hamming_encode_block(&bits_buffer[i], &encoded_bits))
+				{
+					fprintf(stderr, "Error: Unable to encode a hamming block.\n");
+					return -1;
+				}
+
+			memcpy(&((*encoded_buffer)[(i*63)/57]), encoded_bits, 63);
+			free(encoded_bits);
+			encoded_bits = 0;
+		}
+
+	return 0;
+}
+
+
+int hamming_decode(__IN__ const unsigned char* bits_buffer, __IN__ const unsigned int buffer_length, __OUT__ unsigned char** decoded_buffer, unsigned int* decoded_buffer_length)
+{
+	int flipped_bit_counter = 0;
+
+	if (0 != buffer_length % 63)
+		{
+			return -1;
+		}
+
+	*decoded_buffer_length = (buffer_length*63)/57;
+	*decoded_buffer = malloc(*decoded_buffer_length);
+
+	if (0 == *decoded_buffer)
+		{
+			fprintf(stderr, "Error: Unable to allocate memory.\n");
+			return -1;
+		}
+
+	for (unsigned int i = 0 ; i < buffer_length ; i += 63)
+		{
+			unsigned char* decoded_bits = 0;
+			int decode_result = hamming_decode_block(&bits_buffer[i], &decoded_bits);
+			if (-1 == decode_result)
+				{
+					fprintf(stderr, "Error: Unable to decode a hamming block.\n");
+					return -1;
+				}
+			flipped_bit_counter += decode_result;
+
+			memcpy(&((*decoded_buffer)[(i*57)/63]), decoded_bits, 57);
+			free(decoded_bits);
+			decoded_bits = 0;
+		}
+
+	return flipped_bit_counter;
 }

@@ -14,8 +14,8 @@ int main()
 	memcpy(bits2, bits, 56);
 	bits2[56] = 1;
 
-	hamming_encode(bits2, &encoded_hamming);
-	hamming_decode(encoded_hamming, &decoded_hamming);
+	hamming_encode_block(bits2, &encoded_hamming);
+	hamming_decode_block(encoded_hamming, &decoded_hamming);
 
 	if (memcmp(bits2, decoded_hamming, 57) != 0)
 		{
@@ -26,7 +26,7 @@ int main()
 	decoded_hamming = 0;
 
 	encoded_hamming[17] ^= 1;
-	decode_ret_val = hamming_decode(encoded_hamming, &decoded_hamming);
+	decode_ret_val = hamming_decode_block(encoded_hamming, &decoded_hamming);
 
 	if (memcmp(bits2, decoded_hamming, 57) != 0)
 		{
