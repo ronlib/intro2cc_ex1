@@ -71,9 +71,11 @@ int main(int argc, const char* argv[])
 
 			free(hamming_encoded);
 
+			left_to_send = out_buffer_length;
+
 			while (left_to_send > 0)
 				{
-					int nsent = send(socket, file_buffer+nread-left_to_send, left_to_send, 0);
+					int nsent = send(socket, hamming_bytes+out_buffer_length+nread-left_to_send, left_to_send, 0);
 					if (nsent < 1)
 						{
 							fprintf(stderr, "Error while sending buffer. Exiting.\n");
@@ -83,7 +85,7 @@ int main(int argc, const char* argv[])
 					left_to_send -= nsent;
 				}
 
-
+			free(hamming_bytes);
 		}
 
 

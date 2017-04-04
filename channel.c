@@ -39,6 +39,7 @@ int main(int argc, const char* argv[])
 {
 	int client_listening_socket = 0, server_listening_socket = 0,
 		sender_socket = 0, receiver_socket = 0;
+	int err_code = 0;
 	struct sockaddr sender_addr, receiver_addr;
 	char address_buffer[INET_ADDRSTRLEN];
 	long int client_listening_port = 0, server_listening_port = 0;
@@ -62,19 +63,22 @@ int main(int argc, const char* argv[])
 	if ((client_listening_socket = create_listening_socket(client_listening_port)) == -1)
 		{
 			fprintf(stderr, "Cannot create client listening socket. Exiting\n");
-			return 1;
+			err_code = 1;
+			goto cleanup;
 		}
 
 	if ((server_listening_socket = create_listening_socket(server_listening_port)) == -1)
 		{
 			fprintf(stderr, "Cannot create server listening socket. Exiting\n");
-			return 1;
+			err_code = 1;
+			goto cleanup;
 		}
 
 	if ((sender_socket = receive_connection(client_listening_socket, &sender_addr)) == -1)
 		{
 			fprintf(stderr, "Cannot receive client connection. Exiting\n");
-			return 1;
+			err_code = 1;
+			goto cleanup;
 		}
 
 	if (address_buffer == inet_ntop(AF_INET, &(((struct sockaddr_in*)&sender_addr)->sin_addr), address_buffer, sizeof(struct sockaddr_in)))
@@ -90,7 +94,8 @@ int main(int argc, const char* argv[])
 	if ((receiver_socket = receive_connection(server_listening_socket, &receiver_addr)) == -1)
 		{
 			fprintf(stderr, "Cannot receive server connection. Exiting\n");
-			return 1;
+			err_code = 1;
+			goto cleanup;
 		}
 
 	if (address_buffer == inet_ntop(AF_INET, &(((struct sockaddr_in*)&receiver_addr)->sin_addr), address_buffer, sizeof(struct sockaddr_in)))
@@ -133,7 +138,7 @@ int main(int argc, const char* argv[])
 			close(receiver_socket);
 		}
 
-	return 0;
+	return err_code;
 }
 
 
@@ -166,7 +171,7 @@ int receive_connection(int socket, struct sockaddr* client_addr)
 	socklen_t client_len = sizeof(client_addr);
 	received_connection_socket = accept(socket, client_addr, &client_len);
 
-	fprintf(stderr, "A new connection was made!\n");
+	//	fprintf(stderr, "A new connection was made!\n");
 
 	if (-1 == received_connection_socket)
 		{
@@ -179,10 +184,11 @@ int receive_connection(int socket, struct sockaddr* client_addr)
 int transfer_sender_receiver(int sender_socket, int receiver_socket, double bit_flip_prob)
 {
 	char buf[BUFFER_SIZE];
-	int nrecv, flip_counter = 0, tmp = 0;
+	int nrecv, flip_counter = 0, tmp = 0, sum_received = 0;
 
 	while ((nrecv = recv(sender_socket, buf, sizeof(buf), 0)) > 0)
 		{
+			sum_received += nrecv;
 			if (BUFFER_SIZE > nrecv)
 				{
 					fprintf(stderr, "Error: Should have received %d bytes, but got only %d.\n", BUFFER_SIZE, nrecv);
@@ -209,6 +215,8 @@ int transfer_sender_receiver(int sender_socket, int receiver_socket, double bit_
 					left_to_send -= nsent;
 				}
 		}
+
+	fprintf(stderr, "%d bytes flipped %d bits\n", sum_received, flip_counter);
 
 	return 0;
 }

@@ -161,7 +161,7 @@ int hamming_decode(__IN__ const unsigned char* bits_buffer, __IN__ const unsigne
 			return -1;
 		}
 
-	*decoded_buffer_length = (buffer_length*63)/57;
+	*decoded_buffer_length = (buffer_length*57)/63;
 	*decoded_buffer = malloc(*decoded_buffer_length);
 
 	if (0 == *decoded_buffer)

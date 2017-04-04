@@ -31,6 +31,8 @@ int bytes2bits(__IN__ const unsigned char* bytes, __IN__ unsigned int bytes_leng
 {
 	*bits_length = bytes_length*8;
 	*bits = malloc(*bits_length);
+	memset(*bits, 0, *bits_length);
+
 	for (unsigned int i=0 ; i < *bits_length ; ++i)
 		{
 			(*bits)[i] = get_bit_in_byte_array(bytes, i);
