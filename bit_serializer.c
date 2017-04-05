@@ -22,7 +22,7 @@ int bits2bytes(__IN__ const unsigned char* bits, __IN__ unsigned int bits_length
 		}
 
 	// Adding zero padding
-	(*bytes)[(i-1)/8] <<= 8 - i%8;
+	(*bytes)[(i-1)/8] <<= (i%8+7)/8*8 - i%8;
 
 	return 0;
 }

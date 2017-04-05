@@ -15,6 +15,7 @@ int main(int argc, const char* argv[])
 	char file_buffer[FILE_BUFFER_SIZE];
 	FILE *file;
 	size_t nread;
+	int counter = 0;
 
 	if (argc < 4)
 		{
@@ -40,6 +41,12 @@ int main(int argc, const char* argv[])
 		{
 			int left_to_send = nread, out_buffer_length = 0, out_buffer_length2 = 0;
 			unsigned char *bits = 0, *hamming_encoded = 0, *hamming_bytes = 0;
+			if (counter == 6)
+				{
+					counter = counter;
+				}
+
+			++counter;
 
 			if (FILE_BUFFER_SIZE > nread)
 				{
@@ -72,10 +79,9 @@ int main(int argc, const char* argv[])
 			free(hamming_encoded);
 
 			left_to_send = out_buffer_length;
-
 			while (left_to_send > 0)
 				{
-					int nsent = send(socket, hamming_bytes+out_buffer_length+nread-left_to_send, left_to_send, 0);
+					int nsent = send(socket, hamming_bytes+out_buffer_length-left_to_send, left_to_send, 0);
 					if (nsent < 1)
 						{
 							fprintf(stderr, "Error while sending buffer. Exiting.\n");
