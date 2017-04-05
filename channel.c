@@ -27,7 +27,7 @@ int receive_connection(int socket, struct sockaddr* client_addr);
 	Transfers data from sender to receiver, and flips bits with probability bit_flip_prob
 	Returns -1 in case of an error, 0 otherwise.
 */
-int transfer_sender_receiver(int sender_socket, int receiver_socket, double bit_flip_prob);
+int transfer_sender_receiver(int sender_socket, int receiver_socket, double bit_flip_prob, int is_reverse_direction);
 
 /*
 	Returns the number of bits flipped
@@ -109,9 +109,17 @@ int main(int argc, const char* argv[])
 		}
 
 
-	if (transfer_sender_receiver(sender_socket, receiver_socket, error_probability) == -1)
+	if (transfer_sender_receiver(sender_socket, receiver_socket, error_probability, 0) == -1)
 		{
 			fprintf(stderr, "Error while transferring files from sender to receiver. Exiting.\n");
+			goto cleanup;
+		}
+
+	shutdown(receiver_socket, SHUT_WR);
+
+	if (transfer_sender_receiver(receiver_socket, sender_socket, 0, 1) == -1)
+		{
+			fprintf(stderr, "Error while transferring files from receiver to sender. Exiting.\n");
 			goto cleanup;
 		}
 
@@ -181,7 +189,7 @@ int receive_connection(int socket, struct sockaddr* client_addr)
 	return received_connection_socket;
 }
 
-int transfer_sender_receiver(int sender_socket, int receiver_socket, double bit_flip_prob)
+int transfer_sender_receiver(int sender_socket, int receiver_socket, double bit_flip_prob, int is_reverse_direction)
 {
 	char buf[BUFFER_SIZE];
 	int nrecv, flip_counter = 0, tmp = 0, sum_received = 0;
@@ -189,18 +197,21 @@ int transfer_sender_receiver(int sender_socket, int receiver_socket, double bit_
 	while ((nrecv = recv(sender_socket, buf, sizeof(buf), 0)) > 0)
 		{
 			sum_received += nrecv;
-			if (BUFFER_SIZE > nrecv)
+			if (BUFFER_SIZE > nrecv && !is_reverse_direction)
 				{
 					fprintf(stderr, "Error: Should have received %d bytes, but got only %d.\n", BUFFER_SIZE, nrecv);
 					return -1;
 				}
 
-			tmp = flip_bits(buf, bit_flip_prob);
-			if (-1 == tmp)
+			if (0 < bit_flip_prob)
 				{
-					return -1;
+					tmp = flip_bits(buf, bit_flip_prob);
+					if (-1 == tmp)
+						{
+							return -1;
+						}
+					flip_counter += tmp;
 				}
-			flip_counter += tmp;
 
 			int left_to_send = nrecv;
 			while (left_to_send > 0)
@@ -216,7 +227,10 @@ int transfer_sender_receiver(int sender_socket, int receiver_socket, double bit_
 				}
 		}
 
-	fprintf(stderr, "%d bytes flipped %d bits\n", sum_received, flip_counter);
+	if (!is_reverse_direction)
+		{
+			fprintf(stderr, "%d bytes flipped %d bits\n", sum_received, flip_counter);
+		}
 
 	return 0;
 }

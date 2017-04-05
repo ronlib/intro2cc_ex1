@@ -16,6 +16,7 @@ int main(int argc, const char* argv[])
 	FILE *file;
 	size_t nread;
 	int counter = 0;
+	unsigned int receiver_received, receiver_reconstructed, receiver_corrected;
 
 	if (argc < 4)
 		{
@@ -94,6 +95,27 @@ int main(int argc, const char* argv[])
 			free(hamming_bytes);
 		}
 
+	shutdown(socket, SHUT_WR);
+
+	if (recv(socket, &receiver_received, sizeof(receiver_received), 0) < sizeof(receiver_received))
+		{
+			fprintf(stderr, "Error. Could not read receiver response.\n");
+		}
+
+
+	if (recv(socket, &receiver_reconstructed, sizeof(receiver_reconstructed), 0) < sizeof(receiver_reconstructed))
+		{
+			fprintf(stderr, "Error. Could not read receiver response.\n");
+		}
+
+	if (recv(socket, &receiver_corrected, sizeof(receiver_corrected), 0) < sizeof(receiver_corrected))
+		{
+			fprintf(stderr, "Error. Could not read receiver response.\n");
+		}
+
+
+	fprintf(stderr, "%-15s%d bytes\n%-15s%d bytes\n%-15s%d errors\n", "received:", receiver_received,
+					"wrote:", receiver_reconstructed, "corrected:", receiver_corrected);
 
  cleanup:
 	if (socket > 0)

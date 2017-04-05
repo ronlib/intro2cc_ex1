@@ -16,7 +16,8 @@ int main(int argc, const char* argv[])
 	FILE *file = 0;
 	size_t nread;
 	int return_code = 0, num_bits = 0, num_bits2 = 0, num_bytes = 0,
-		hamming_decode_result, corrected_bits = 0, received_bytes = 0, wrote_bytes = 0;
+		hamming_decode_result;
+	unsigned int corrected_bits = 0, received_bytes = 0, wrote_bytes = 0;
 
 	if (argc < 4)
 		{
@@ -84,18 +85,14 @@ int main(int argc, const char* argv[])
 			size_t nwrite = fwrite(decoded_bytes, 1, num_bytes, file);
 			wrote_bytes += num_bytes;
 
-
-			/* if (nwrite != nread) */
-			/* 	{ */
-			/* 		fprintf(stderr, "Error while trying to write to file %s. Exiting.\n", argv[3]); */
-			/* 		return_code = 1; */
-			/* 		goto cleanup; */
-			/* 	} */
 		}
 
-	fprintf(stderr, "%-15s: %d bytes\n%-15s: %d bytes\n%-15s: %d errors\n", "received",
-					received_bytes, "wrote", wrote_bytes, "corrected", corrected_bits);
+	fprintf(stderr, "%-15s %d bytes\n%-15s %d bytes\n%-15s %d errors\n", "received:",
+					received_bytes, "wrote:", wrote_bytes, "corrected:", corrected_bits);
 
+	send(socket, &received_bytes, sizeof(received_bytes), 0);
+	send(socket, &wrote_bytes, sizeof(wrote_bytes), 0);
+	send(socket, &corrected_bits, sizeof(corrected_bits), 0);
 
  cleanup:
 	if (socket > 0)
